@@ -1,0 +1,6 @@
+{
+  "db": "postgres://HaloAdmin:P455w0rd88@postgresql/halo",
+  "rabbit": {
+    "server": "rabbitmq"
+  }
+}
