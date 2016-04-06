@@ -23,7 +23,7 @@
     "sqlite3": "^3.0.9"
   },
   "dependencies": {
-    "persephone-ms": "git@github.com:GuardTime/persephone-ms.git#bf276beee055c22a63bd38322f7529e1fbcb0c94",
+    "persephone-ms": "git@github.com:GuardTime/persephone-ms.git#7f3cc4d58333950972366fe823d6f3d0f7401156",
     "uuid-v4.js": "^1.0.2",
     "lodash": "^4.5.0",
     "lazy.js": "^0.4.0",
