@@ -1,0 +1,341 @@
+# this is an example of the Uber API
+# as a demonstration of an API spec in YAML
+swagger: '2.0'
+info:
+  title: Alert Service
+  description:  CRUD operations on notifications using the alert-service API.
+  version: "1.0.0"
+# the domain of the service
+host: localhost:8080
+# array of all schemes that your API supports
+schemes:
+  - http
+produces:
+  - application/json
+paths:
+  /notifications:
+    get:
+      summary: Notifications
+      description:
+        The Notifications endpoint returns information about the *KSI* notifications
+        that have been emitted. The response includes the type of KSI notification
+        and other details about each KSI notification, and lists the notes about each
+        notification if there are any.
+      tags:
+        - NotificationFindQuery
+      responses:
+        200:
+          description: An array of notifications
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Notification'
+    post:
+      summary: Notifications
+      description:
+        The Notifications endpoint that creates a notification and returns information about the *KSI* notification
+        that was created.
+      parameters:
+        - name: type
+          in: query
+          description: The type of KSI notification that was emitted.
+          required: true
+          type: string
+        - name: status
+          in: query
+          description: The status of the notification.
+          required: true
+          type: string
+        - name: hostName
+          in: query
+          description: The host name of the KSI appliance that emitted the notification event.
+          required: true
+          type: string
+        - name: closedTime
+          in: query
+          description: The time the notification was closed.
+          required: false
+          type: string
+        - name: closedBy
+          in: query
+          description: The user who closed the notification.
+          required: false
+          type: string
+      tags:
+        - NotificationCreateCommand
+      responses:
+        200:
+          description: One notification object
+          schema:
+            $ref: '#/definitions/Notification'
+  /notifications/{id}:
+    get:
+      summary: Notifications
+      description:
+        The Notifications endpoint returns information about the *KSI* notification by *{id}*
+        that have been emitted. The response includes the type of KSI notification
+        and other details about each KSI notification, and lists the notes about each
+        notification if there are any.
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier for the notification (primary key)
+          required: true
+          type: number
+          format: integer
+      tags:
+        - NotificationGetQuery
+      responses:
+        200:
+          description: One notification object
+          schema:
+            $ref: '#/definitions/Notification'
+    put:
+      summary: Notifications
+      description:
+        The Notifications endpoint that updates notification info and returns information 
+        about the *KSI* notifications that was updated. The response includes the type 
+        of KSI notification and other details about each KSI notification, and lists the notes 
+        about each notification if there are any.
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier for the notification (primary key)
+          required: true
+          type: number
+          format: integer
+        - name: type
+          in: query
+          description: The type of KSI notification that was emitted.
+          required: false
+          type: string
+        - name: status
+          in: query
+          description: The status of the notification.
+          required: false
+          type: string
+        - name: hostName
+          in: query
+          description: The host name of the KSI appliance that emitted the notification event.
+          required: false
+          type: string
+        - name: closedTime
+          in: query
+          description: The time the notification was closed.
+          required: false
+          type: string
+        - name: closedBy
+          in: query
+          description: The user who closed the notification.
+          required: false
+          type: string
+      tags:
+        - NotificationUpdateCommand
+      responses:
+        200:
+          description: One notification object
+          schema:
+            $ref: '#/definitions/Notification'
+    delete:
+      summary: Notifications
+      description:
+        The Notifications endpoint that deletes a notification by *{id}*.
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier for the notification (primary key)
+          required: true
+          type: number
+          format: integer
+      tags:
+        - NotificationDeleteCommand
+      responses:
+        200:
+          description: None
+  /notifications/{notificationId}/notes:
+    get:
+      summary: Notes
+      description:
+        The Notes endpoint returns notes about the *KSI* notifications
+        that have been emitted. The response includes the users and the notes that users entered 
+        about the of KSI notification.
+      parameters:
+        - name: notificationId
+          in: path
+          description: Unique identifier for the notification (primary key)
+          required: true
+          type: number
+          format: integer
+      tags:
+        - NoteFindQuery
+      responses:
+        200:
+          description: An array of notes
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Note'
+  /notifications/notes:          
+     post:
+      summary: Notes
+      description:
+        The Notes endpoint that creates a note and adds it to a notififcation and returns the note that was created.
+      parameters:
+        - name: user
+          in: query
+          description: The user that created the note
+          required: true
+          type: string
+        - name: note
+          in: query
+          description: The note text
+          required: true
+          type: string
+        - name: notificationId
+          in: query
+          description: Unique identifier of the notification in which to add the note.
+          required: true
+          type: string
+      tags:
+        - NoteCreateCommand
+      responses:
+        200:
+          description: One note object
+          schema:
+            $ref: '#/definitions/Note'
+  /notifications/{notificationId}/notes/{id}:
+    get:
+      summary: Notes
+      description:
+        The Notes endpoint returns the note about the *KSI* notification by note *{id}*
+        that was entered in by a user.
+      parameters:
+        - name: notificationId
+          in: path
+          description: Unique identifier for the notification
+          required: true
+          type: number
+          format: integer
+        - name: id
+          in: path
+          description: Unique identifier for the note
+          required: true
+          type: number
+          format: integer
+      tags:
+        - NoteGetQuery
+      responses:
+        200:
+          description: One notification object
+          schema:
+            $ref: '#/definitions/Note'
+    put:
+      summary: Note
+      description:
+        The Notes endpoint that updates a note info and returns information 
+        the note that was updated.
+      parameters:
+        - name: notificationId
+          in: path
+          description: Unique identifier for the notification
+          required: true
+          type: number
+          format: integer
+        - name: id
+          in: path
+          description: Unique identifier for the note
+          required: true
+          type: number
+          format: integer
+        - name: user
+          in: query
+          description: The user that created the note
+          required: false
+          type: string
+        - name: note
+          in: query
+          description: The note text
+          required: false
+          type: string
+      tags:
+        - NoteUpdateCommand
+      responses:
+        200:
+          description: One note object
+          schema:
+            $ref: '#/definitions/Note'
+    delete:
+      summary: Note
+      description:
+        The Notes endpoint that deletes a notes by *{id}* in a notification.
+      parameters:
+        - name: notificationId
+          in: path
+          description: Unique identifier for the notification
+          required: true
+          type: number
+          format: integer
+        - name: id
+          in: path
+          description: Unique identifier for the note.
+          required: true
+          type: number
+          format: integer
+      tags:
+        - NoteDeleteCommand
+      responses:
+        200:
+          description: None
+definitions:
+  Notification:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Unique identifier for the notification (primary key)
+      type:
+        type: string
+        description: The type of KSI notification that was emitted.
+      status:
+        type: string
+        description: The status of the notification.
+      hostName:
+        type: string
+        description: The host name of the KSI appliance that emitted the notification event.
+      closedTime:
+        type: string
+        description: The time the notification was closed.
+      closedBy:
+        type: string
+        description: The user who closed the notification
+      createdAt:
+        type: string
+        description: The time the record was created.
+      updatedAt:
+        type: string
+        description: The time the record was updated.
+      notes:
+        type: array
+        items:
+          $ref: '#/definitions/Note'
+  Note:
+    type: object
+    properties:
+      id:
+        type: integer
+        description: Unique identifier for the note. (primary key)
+      user:
+        type: string
+        description: The user who create the note.
+      note:
+        type: string
+        description: The note the user created.
+      notificationId:
+        type: integer
+        description: Unique identifier for the notification. (foreign key in the notification table)
+      createdAt:
+        type: string
+        description: The time the record was created.
+      updatedAt:
+        type: string
+        description: The time the record was updated.
