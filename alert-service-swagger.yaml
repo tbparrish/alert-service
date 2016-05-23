@@ -93,9 +93,9 @@ paths:
     put:
       summary: Notifications
       description:
-        The Notifications endpoint that updates notification info and returns information 
-        about the *KSI* notifications that was updated. The response includes the type 
-        of KSI notification and other details about each KSI notification, and lists the notes 
+        The Notifications endpoint that updates notification info and returns information
+        about the *KSI* notifications that was updated. The response includes the type
+        of KSI notification and other details about each KSI notification, and lists the notes
         about each notification if there are any.
       parameters:
         - name: id
@@ -136,28 +136,12 @@ paths:
           description: One notification object
           schema:
             $ref: '#/definitions/Notification'
-    delete:
-      summary: Notifications
-      description:
-        The Notifications endpoint that deletes a notification by *{id}*.
-      parameters:
-        - name: id
-          in: path
-          description: Unique identifier for the notification (primary key)
-          required: true
-          type: number
-          format: integer
-      tags:
-        - NotificationDeleteCommand
-      responses:
-        200:
-          description: None
   /notifications/{notificationId}/notes:
     get:
       summary: Notes
       description:
         The Notes endpoint returns notes about the *KSI* notifications
-        that have been emitted. The response includes the users and the notes that users entered 
+        that have been emitted. The response includes the users and the notes that users entered
         about the of KSI notification.
       parameters:
         - name: notificationId
@@ -175,12 +159,16 @@ paths:
             type: array
             items:
               $ref: '#/definitions/Note'
-  /notifications/notes:          
-     post:
+    post:
       summary: Notes
       description:
         The Notes endpoint that creates a note and adds it to a notififcation and returns the note that was created.
       parameters:
+        - name: notificationId
+          in: path
+          description: Unique identifier of the notification in which to add the note.
+          required: true
+          type: string
         - name: user
           in: query
           description: The user that created the note
@@ -189,11 +177,6 @@ paths:
         - name: note
           in: query
           description: The note text
-          required: true
-          type: string
-        - name: notificationId
-          in: query
-          description: Unique identifier of the notification in which to add the note.
           required: true
           type: string
       tags:
@@ -232,7 +215,7 @@ paths:
     put:
       summary: Note
       description:
-        The Notes endpoint that updates a note info and returns information 
+        The Notes endpoint that updates a note info and returns information
         the note that was updated.
       parameters:
         - name: notificationId
