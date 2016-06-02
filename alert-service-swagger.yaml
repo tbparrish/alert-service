@@ -41,9 +41,14 @@ paths:
           description: The type of KSI notification that was emitted.
           required: true
           type: string
+        - name: message
+          in: query
+          description: Message from the log.
+          required: true
+          type: string
         - name: status
           in: query
-          description: The status of the notification.
+          description: The status of the notification. Open or Closed
           required: true
           type: string
         - name: hostName
@@ -104,6 +109,11 @@ paths:
           required: true
           type: number
           format: integer
+        - name: message
+          in: query
+          description: Message from the log.
+          required: false
+          type: string
         - name: type
           in: query
           description: The type of KSI notification that was emitted.
@@ -174,7 +184,12 @@ paths:
           description: The user that created the note
           required: true
           type: string
-        - name: note
+        - name: closingNote
+          in: query
+          description: true if this is the closing note. Otherwise false
+          required: true
+          type: boolean
+        - name: content
           in: query
           description: The note text
           required: true
@@ -235,7 +250,12 @@ paths:
           description: The user that created the note
           required: false
           type: string
-        - name: note
+        - name: closingNote
+          in: query
+          description: true if this is the closing note. Otherwise false
+          required: false
+          type: boolean
+        - name: content
           in: query
           description: The note text
           required: false
@@ -279,9 +299,16 @@ definitions:
       type:
         type: string
         description: The type of KSI notification that was emitted.
+      message:
+        type: string
+        description: The log message
       status:
         type: string
         description: The status of the notification.
+        "enum": [
+              "Open",
+              "Closed"
+            ]
       hostName:
         type: string
         description: The host name of the KSI appliance that emitted the notification event.
@@ -310,7 +337,10 @@ definitions:
       user:
         type: string
         description: The user who create the note.
-      note:
+      closingNote:
+        type: boolean
+        description: true of closing note,  false otherwise
+      content:
         type: string
         description: The note the user created.
       notificationId:
