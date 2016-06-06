@@ -3,5 +3,6 @@
   "rabbit": {
     "server": "rabbitmq"
   },
+  "notificationStagingDuration": 10,
   "log": {"level": "debug"}
 }

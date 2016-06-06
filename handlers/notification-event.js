@@ -70,6 +70,27 @@ NotificationEventHandler.handleErrorState = function(logEvent) {
       });
     }
   }
+
+  if(_allParentFailureNotificationMap.has(logEvent.appliance_hostname)) {
+    ne = _allParentFailureNotificationMap.get(logEvent.appliance_hostname);
+    if(ne.state === 0) {
+      log.debug("Got "+logEvent.message_type+" Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State\n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state from pending to close\n");
+      ne.state = 2;
+      _allParentFailureNotificationMap.remove(logEvent.appliance_hostname);
+    } else if(ne.state === 1) {
+      command('NotificationUpdateCommand',
+        {id: ne.id, state: 2, status: "Closed"}).then(function(notification){
+          command('NoteCreateCommand', {"user": "Overwatch",  "closingNote": true,
+          "content":"Received service message", "notificationId": notification.id }).then(function(){
+            log.debug("Got "+logEvent.message_type+" Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State\n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state from open to close\n");
+            // move to close state
+            ne.state = 2;
+            // remove from map
+            _allParentFailureNotificationMap.remove(logEvent.appliance_hostname);
+          });
+      });
+    }
+  }
 };
 NotificationEventHandler.prototype.handleError = function(logEvent) {
   var ne = null;
@@ -190,7 +211,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       if( (mins > 10) ) {
         log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
         // move notification from pending state to open state.
-        // condition: state = 0 and it was created more than 10 ago.
+        // condition: state = 0 and it was created more than 10 mins ago.
         command('NotificationCreateCommand',
           {"type": "KSI Service Errors",  "status":"Open", "hostName": key,
           "message": value.notificationMessage}).then(function(notification){
@@ -241,10 +262,25 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
   });
 
   // _allParentFailureNotificationMap
-  // log.debug("\t***_allParentFailureNotificationMap***");
-  // _allParentFailureNotificationMap.forEach(function(value, key) {
-  //   log.debug("\tkey = " + JSON.stringify(key, null, 2) + "\n\tvalue = " + JSON.stringify(value, null, 2));
-  // });
+  _allParentFailureNotificationMap.forEach(function(value, key) {
+    endTime = moment(moment().toArray());
+    if( (value.state === 0) ) {
+      startTime = moment(moment(value.createdAt).toArray());
+      mins = endTime.diff(startTime, 'seconds');
+      if( (mins > 10) ) {
+        log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
+        // move notification from pending state to open state.
+        // condition: state = 0 and it was created more than 10 mins ago.
+        command('NotificationCreateCommand',
+          {"type": "All Parent Failure",  "status":"Open", "hostName": key,
+          "message": value.notificationMessage}).then(function(notification){
+            value.id = notification.id; // notification primary key
+            value.creationCounter = 0;  // reset counter
+            value.state = 1;            // move to open state
+        });
+      }
+    }
+  });
 };
 
 var notificationEventHandler = new NotificationEventHandler();

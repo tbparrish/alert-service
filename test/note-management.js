@@ -12,14 +12,14 @@ describe('Note Management', function(){
 
     describe('Note', function () {
         it('should create', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Open", "hostName": "Guardtime",
             "message": "This should create a note", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
-                ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": true, "content":"I want to be part of the Avengers", "notificationId": notification.id })
+                ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": false, "content":"I want to be part of the Avengers", "notificationId": notification.id })
                 .then(function(note){
                   expect(note).to.have.property('id');
                   expect(note).to.have.property('user', 'Iron Man');
-                  expect(note).to.have.property('closingNote', true);
+                  expect(note).to.have.property('closingNote', false);
                   expect(note).to.have.property('content', 'I want to be part of the Avengers');
                   expect(note).to.have.property('notificationId', notification.id);
                   done();
@@ -62,10 +62,10 @@ describe('Note Management', function(){
         });
 
         it('should update', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Open", "hostName": "Guardtime",
             "message": "This should update a note", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
-                return ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": true, "content": "I want to be part of the Avengers", "notificationId": notification.id }).then(function(note){
+                return ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": false, "content": "I want to be part of the Avengers", "notificationId": notification.id }).then(function(note){
                   note.user = "Superman";
                   return ms.command('NoteUpdateCommand', note);
                 });
@@ -76,6 +76,26 @@ describe('Note Management', function(){
               .then(function (note) {
                   expect(note).to.have.property('user', 'Superman');
                   done();
+              })
+              .catch(done);
+        });
+
+        it('should close a notification', function(done){
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Open", "hostName": "Guardtime",
+            "message": "This should update a note to close and close the notification" })
+              .then(function (notification) {
+                return ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": true, "content": "I want to be part of the Avengers", "notificationId": notification.id });
+              })
+              .then(function(notification){
+                expect(notification).to.have.property('id');
+                expect(notification).to.have.property('closedTime');
+                expect(notification).to.have.property('type', 'KSI Service Errors');
+                expect(notification).to.have.property('status', 'Closed');
+                expect(notification).to.have.property('hostName', 'Guardtime');
+                expect(notification).to.have.property('message', 'This should update a note to close and close the notification');
+                expect(notification).to.have.property('closedTime');
+                expect(notification).to.have.property('closedBy', 'Iron Man');
+                done();
               })
               .catch(done);
         });
