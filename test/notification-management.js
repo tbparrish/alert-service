@@ -12,12 +12,12 @@ describe('Notification Management', function(){
 
     describe('Notification', function () {
         it('should create', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Errors",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
             "message": "This should create a notification", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
                 expect(notification).to.have.property('id');
                 expect(notification).to.have.property('closedTime');
-                expect(notification).to.have.property('type', 'KSI Errors');
+                expect(notification).to.have.property('type', 'KSI Service Errors');
                 expect(notification).to.have.property('status', 'Closed');
                 expect(notification).to.have.property('hostName', 'Guardtime');
                 expect(notification).to.have.property('message', 'This should create a notification');
@@ -28,7 +28,7 @@ describe('Notification Management', function(){
         });
 
         it('should find notification', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Warnings",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Warnings",  "status":"Closed", "hostName": "Guardtime",
             "message": "This should find a notification", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function(){
                   return ms.command('NotificationFindQuery');
@@ -41,7 +41,7 @@ describe('Notification Management', function(){
         });
 
         it('should delete a notification', function(done){
-            ms.command('NotificationDeleteCommand', {"type": "KSI Errors"})
+            ms.command('NotificationDeleteCommand', {"type": "KSI Service Errors"})
               .then(function () {
                  return ms.command('NotificationFindQuery');
               })
@@ -53,17 +53,17 @@ describe('Notification Management', function(){
         });
 
         it('should update', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Errors",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
             "message": "This should update a notification", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
-                  notification.type = "Realtime Log Stream Stopped";
+                  notification.type = "Aggregator All Parent Failure";
                   return ms.command('NotificationUpdateCommand', notification);
               })
               .then(function(notification){
                   return ms.command('NotificationGetQuery', {id: notification.id});
               })
               .then(function (notification) {
-                  expect(notification).to.have.property('type', 'Realtime Log Stream Stopped');
+                  expect(notification).to.have.property('type', 'Aggregator All Parent Failure');
                   done();
               })
               .catch(done);

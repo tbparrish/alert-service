@@ -12,7 +12,7 @@ describe('Note Management', function(){
 
     describe('Note', function () {
         it('should create', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Errors",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
             "message": "This should create a note", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
                 ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": true, "content":"I want to be part of the Avengers", "notificationId": notification.id })
@@ -29,7 +29,7 @@ describe('Note Management', function(){
         });
 
         it('should find notes', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Warnings",  "status":"Open", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Warnings",  "status":"Open", "hostName": "Guardtime",
           "message": "This should find a note" })
               .then(function(notification){
                   return ms.command('NoteCreateCommand', {"user": "Hulk",  "closingNote": false, "content":"I love the green color", "notificationId": notification.id }).then(function(){
@@ -46,7 +46,7 @@ describe('Note Management', function(){
         });
 
         it('should delete a note', function(done){
-            ms.command('NotificationDeleteCommand', {type: "KSI Errors"})
+            ms.command('NotificationDeleteCommand', {type: "KSI Service Errors"})
               .then(function () {
                 return ms.command('NotificationFindQuery').then(function(notifications){
                   return ms.command('NoteDeleteCommand', {id: notifications[0].notes[0].id, notificationId: notifications[0].id}).then(function(){
@@ -62,7 +62,7 @@ describe('Note Management', function(){
         });
 
         it('should update', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Errors",  "status":"Closed", "hostName": "Guardtime",
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
             "message": "This should update a note", "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
                 return ms.command('NoteCreateCommand', {"user": "Iron Man",  "closingNote": true, "content": "I want to be part of the Avengers", "notificationId": notification.id }).then(function(note){

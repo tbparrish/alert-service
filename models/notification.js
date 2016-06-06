@@ -1,7 +1,11 @@
 var Notification = model({
   name: 'Notification',
   properties: {
-    type: { type: Sequelize.STRING, allowNull: false },
+    type: { type: Sequelize.ENUM,
+            values: ['KSI Service Errors', 'KSI Service Warnings', 'Aggregator All Parent Failure'],
+            allowNull: false,
+            validate:  {isIn: [['KSI Service Errors', 'KSI Service Warnings', 'Aggregator All Parent Failure']]}
+    },
     status: { type: Sequelize.ENUM,
             values: ['Open', 'Closed'],
             allowNull: false,
