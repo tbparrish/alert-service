@@ -9,8 +9,12 @@ on("NoteGetQuery", function(data){
 on("NoteCreateCommand", function(data){
   return models.Note.create(data, {include: INCLUDE}).then(function(note){
     if(note.closingNote === true){
-      return models.Notification.findOne({where: {id: data.notificationId}}).then(function(notification){
-          return notification.update({status: "Closed", closedTime: Date.now(), closedBy: data.user}, {include: INCLUDE});
+      return models.Notification.findOne({where: {id: data.notificationId}})
+        .then(function(notification){
+          return notification.update({status: "Closed", closedTime: Date.now(), closedBy: data.user}, {include: INCLUDE})
+        .then(function(notification){
+          return command('NotificationGetQuery', {id: notification.id});
+        });
       });
     } else {
       return note;
