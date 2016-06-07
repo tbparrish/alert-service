@@ -18,10 +18,10 @@ var NotificationEvent = function(){
 
 var NotificationEventHandler = function() {
   // task scheduled to monitor notification HashMaps every 10 seconds (testing)
-  setInterval(this.monitorHashMapTask, 10 * 1000);
+  //setInterval(this.monitorHashMapTask, 10 * 1000);
 
   // task scheduled to send out emails every 10 seconds (testing)
-  setInterval(this.emailDailyTask, 13 * 1000);
+  //setInterval(this.emailDailyTask, 13 * 1000);
 
   //-------------------------------------------------------------------
   // task scheduled to monitor notification HashMaps every 5 minutes
@@ -96,6 +96,7 @@ NotificationEventHandler.prototype.handleError = function(logEvent) {
   var ne = null;
   if(_errorNotificationMap.has(logEvent.appliance_hostname)) {
     ne = _errorNotificationMap.get(logEvent.appliance_hostname);
+    log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
     ne.creationCounter++;
     ne.updatedAt = moment();
   } else {
@@ -125,6 +126,7 @@ NotificationEventHandler.prototype.handleAllParentFailure = function(logEvent) {
   var ne = null;
   if(_allParentFailureNotificationMap.has(logEvent.appliance_hostname)) {
     ne = _allParentFailureNotificationMap.get(logEvent.appliance_hostname);
+    log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
     ne.creationCounter++;
     ne.updatedAt = moment();
   } else {
@@ -132,6 +134,7 @@ NotificationEventHandler.prototype.handleAllParentFailure = function(logEvent) {
     ne.creationCounter++;
     ne.notificationMessage = logEvent.message;
     _allParentFailureNotificationMap.set(logEvent.appliance_hostname, ne);
+    log.debug("Got All Parent Failure Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Initial State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state from initial to pending state\n");
   }
 
   NotificationEventHandler.handleErrorState(logEvent);
@@ -285,25 +288,25 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
 
 var notificationEventHandler = new NotificationEventHandler();
 
-on("ParsedLogEvent", function(logEvent){
-  switch (logEvent.message_type) {
-    case "ALL_PARENT_FAILURE":
-      notificationEventHandler.handleAllParentFailure(logEvent);
-      break;
-    case "ROUND_RESPONSE_FROM_PARENT":
-      notificationEventHandler.handleRoundResponseFromParent(logEvent);
-      break;
-  }
-
-  switch (logEvent.syslog_severity) {
-    case "emergency":
-    case "alert":
-    case "critical":
-    case "error":
-      notificationEventHandler.handleError(logEvent);
-      break;
-    case "warning":
-      notificationEventHandler.handleWarning(logEvent);
-      break;
-  }
-});
+// on("ParsedLogEvent", function(logEvent){
+//   switch (logEvent.message_type) {
+//     case "ALL_PARENT_FAILURE":
+//       notificationEventHandler.handleAllParentFailure(logEvent);
+//       break;
+//     case "ROUND_RESPONSE_FROM_PARENT":
+//       notificationEventHandler.handleRoundResponseFromParent(logEvent);
+//       break;
+//   }
+//
+//   switch (logEvent.syslog_severity) {
+//     case "emergency":
+//     case "alert":
+//     case "critical":
+//     case "error":
+//       notificationEventHandler.handleError(logEvent);
+//       break;
+//     case "warning":
+//       notificationEventHandler.handleWarning(logEvent);
+//       break;
+//   }
+// });
