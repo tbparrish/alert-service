@@ -37,14 +37,11 @@ var NotificationEventHandler = function() {
 
   // task scheduled to monitor notification HashMaps every 10 seconds (testing)
   setInterval(this.monitorHashMapTask, 10 * 1000);
+  // task scheduled to monitor notification HashMaps every 5 minutes
+  //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
 
   // task scheduled to send out emails every 24 hours
   setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
-  //setInterval(this.emailDailyTask, 13 * 1000);
-
-  //-------------------------------------------------------------------
-  // task scheduled to monitor notification HashMaps every 5 minutes
-  //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
 };
 NotificationEventHandler.getUserNotificationPreferences = function() {
   return command('UserFindQuery').then(function(users) {
@@ -180,7 +177,7 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
                if(notificationtype.once === true) {
                  _errorNotificationMap.forEach(function(value, key) {
                    if( (value.movedToOpenState === true) && (value.state === 1) ) {
-                     notification.push({hostname: key, message: value.notificationMessage});
+                     notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
                      value.movedToOpenState = false;
                    }
                  });
@@ -190,7 +187,7 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
                if(notificationtype.once === true) {
                  _warningNotificationMap.forEach(function(value, key) {
                    if( (value.movedToOpenState === true) && (value.state === 1) ) {
-                     notification.push({hostname: key, message: value.notificationMessage});
+                     notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
                      value.movedToOpenState = false;
                    }
                  });
@@ -200,7 +197,7 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
                if(notificationtype.once === true) {
                  _allParentFailureNotificationMap.forEach(function(value, key) {
                    if( (value.movedToOpenState === true) && (value.state === 1) ) {
-                     notification.push({hostname: key, message: value.notificationMessage});
+                     notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
                      value.movedToOpenState = false;
                    }
                  });
@@ -212,7 +209,7 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
                if(notificationtype.daily === true) {
                  _errorNotificationMap.forEach(function(value, key) {
                    if( value.state === 1 ) {
-                     notification.push({hostname: key, message: value.notificationMessage});
+                     notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
                    }
                  });
                }
@@ -221,7 +218,7 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
                if(notificationtype.daily === true) {
                  _warningNotificationMap.forEach(function(value, key) {
                    if( value.state === 1 ) {
-                     notification.push({hostname: key, message: value.notificationMessage});
+                     notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
                    }
                  });
                }
@@ -230,14 +227,14 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
                if(notificationtype.daily === true) {
                  _allParentFailureNotificationMap.forEach(function(value, key) {
                    if( value.state === 1 ) {
-                     notification.push({hostname: key, message: value.notificationMessage});
+                     notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
                    }
                  });
                }
                return { name: notificationtype.name, notification: notification };
              }
            }
-        })};
+         })};
     });
   }).then(function(emailNotifications){
     return emailNotifications.map(function(emailNotification) {
@@ -253,8 +250,8 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
       if( emailNotification.notificationSummary.length > 0 ){
         // TODO: Need to format email
         log.debug("****************************************************************************");
-        log.debug("****************************************************************************");
-        log.debug("************* Sending email to " + emailNotification.email + "*************");
+        log.debug(emailSubject);
+        log.debug("Sending email to "+emailNotification.email);
         log.debug("****************************************************************************");
         log.debug("****************************************************************************");
         return event("EmailNotification",{
