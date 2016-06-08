@@ -2,10 +2,17 @@ var moment = require('moment'),
     setInterval = require('../helpers/timers').setInterval,
     HashMap = require('hashmap');
 
+// hashmap objects to store log event for keep track
+// of notification states.
 var _errorNotificationMap = new HashMap();
 var _warningNotificationMap = new HashMap();
 var _allParentFailureNotificationMap = new HashMap();
 
+// default value to stage notification in pending state before
+// moving to open state.
+var notificationStagingDuration = 10;
+
+// object stored in hashmap
 var NotificationEvent = function(){
   this.id = null;
   this.notificationMessage = null;
@@ -17,6 +24,12 @@ var NotificationEvent = function(){
 };
 
 var NotificationEventHandler = function() {
+  // set notificationStagingDuration to configurable value
+  if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
+    notificationStagingDuration = config.notificationStagingDuration;
+  }
+  log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
+
   // task scheduled to monitor notification HashMaps every 10 seconds (testing)
   //setInterval(this.monitorHashMapTask, 10 * 1000);
 
@@ -124,20 +137,22 @@ NotificationEventHandler.prototype.handleWarning = function(logEvent) {
 };
 NotificationEventHandler.prototype.handleAllParentFailure = function(logEvent) {
   var ne = null;
-  if(_allParentFailureNotificationMap.has(logEvent.appliance_hostname)) {
-    ne = _allParentFailureNotificationMap.get(logEvent.appliance_hostname);
-    log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
-    ne.creationCounter++;
-    ne.updatedAt = moment();
+  if(_errorNotificationMap.has(logEvent.appliance_hostname)) {
+    NotificationEventHandler.handleErrorState(logEvent);
   } else {
-    ne = new NotificationEvent();
-    ne.creationCounter++;
-    ne.notificationMessage = logEvent.message;
-    _allParentFailureNotificationMap.set(logEvent.appliance_hostname, ne);
-    log.debug("Got All Parent Failure Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Initial State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state from initial to pending state\n");
+    if(_allParentFailureNotificationMap.has(logEvent.appliance_hostname)) {
+      ne = _allParentFailureNotificationMap.get(logEvent.appliance_hostname);
+      log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      ne.creationCounter++;
+      ne.updatedAt = moment();
+    } else {
+      ne = new NotificationEvent();
+      ne.creationCounter++;
+      ne.notificationMessage = logEvent.message;
+      _allParentFailureNotificationMap.set(logEvent.appliance_hostname, ne);
+      log.debug("Got All Parent Failure Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Initial State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state from initial to pending state\n");
+    }
   }
-
-  NotificationEventHandler.handleErrorState(logEvent);
 };
 NotificationEventHandler.prototype.handleRoundResponseFromParent = function(logEvent) {
   NotificationEventHandler.handleErrorState(logEvent);
@@ -211,7 +226,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     if( (value.state === 0) ) {
       startTime = moment(moment(value.createdAt).toArray());
       mins = endTime.diff(startTime, 'seconds');
-      if( (mins > 10) ) {
+      if( (mins > notificationStagingDuration) ) {
         log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
         // move notification from pending state to open state.
         // condition: state = 0 and it was created more than 10 mins ago.
@@ -232,7 +247,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     if( (value.state === 0) && (value.creationCounter > 5) ) {
       startTime = moment(moment(value.createdAt).toArray());
       mins = endTime.diff(startTime, 'seconds');
-      if( (mins > 10) ) {
+      if( (mins > notificationStagingDuration) ) {
         log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes \n\t\t\t-Has occurred over 5 times \n\tChanging [host:"+key+"] warning state from pending to open state\n");
         // move notification from pending state to open state.
         // condition: state = 0, counter > 5, and it was created more than 10 ago.
@@ -270,12 +285,12 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     if( (value.state === 0) ) {
       startTime = moment(moment(value.createdAt).toArray());
       mins = endTime.diff(startTime, 'seconds');
-      if( (mins > 10) ) {
+      if( (mins > notificationStagingDuration) ) {
         log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
         // move notification from pending state to open state.
         // condition: state = 0 and it was created more than 10 mins ago.
         command('NotificationCreateCommand',
-          {"type": "All Parent Failure",  "status":"Open", "hostName": key,
+          {"type": "Aggregator All Parent Failure",  "status":"Open", "hostName": key,
           "message": value.notificationMessage}).then(function(notification){
             value.id = notification.id; // notification primary key
             value.creationCounter = 0;  // reset counter
