@@ -1,6 +1,7 @@
 var moment = require('moment'),
     setInterval = require('../helpers/timers').setInterval,
-    HashMap = require('hashmap');
+    HashMap = require('hashmap'),
+    StringBuilder = require('stringbuilder');
 
 // hashmap objects to store log event for keep track
 // of notification states.
@@ -29,19 +30,19 @@ var NotificationEvent = function(){
 };
 
 var NotificationEventHandler = function() {
-  // // set notificationStagingDuration to configurable value
-  // if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
-  //   notificationStagingDuration = config.notificationStagingDuration;
-  // }
-  // log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
-  //
-  // // task scheduled to monitor notification HashMaps every 10 seconds (testing)
-  // setInterval(this.monitorHashMapTask, 10 * 1000);
-  // // task scheduled to monitor notification HashMaps every 5 minutes
-  // //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
-  //
-  // // task scheduled to send out emails every 24 hours
-  // setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
+  // set notificationStagingDuration to configurable value
+  if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
+    notificationStagingDuration = config.notificationStagingDuration;
+  }
+  log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
+
+  // task scheduled to monitor notification HashMaps every 10 seconds (testing)
+  setInterval(this.monitorHashMapTask, 10 * 1000);
+  // task scheduled to monitor notification HashMaps every 5 minutes
+  //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
+
+  // task scheduled to send out emails every 24 hours
+  setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
 };
 NotificationEventHandler.prototype.handleError = function(logEvent) {
   var ne = null;
@@ -272,16 +273,17 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
   }).then(function(emailNotifications){
     return emailNotifications.map(function(emailNotification){
       if( emailNotification.notificationSummary.length > 0 ){
-        // TODO: Need to format email
-        log.debug("****************************************************************************");
-        log.debug(emailSubject);
-        log.debug("Sending email to "+emailNotification.email);
-        log.debug("****************************************************************************");
-        log.debug("****************************************************************************");
-        return event("EmailNotification",{
-          "to": emailNotification.email,
-          "subject": emailSubject,
-          "body": JSON.stringify(emailNotification.notificationSummary, null, 2)
+        return NotificationEventHandler.formatEmailBody(emailNotification.notificationSummary).build(function(err, summary) {
+          log.debug("****************************************************************************");
+          log.debug(emailSubject);
+          log.debug("Sending email to "+emailNotification.email);
+          log.debug("****************************************************************************");
+          log.debug("****************************************************************************");
+          return event("EmailNotification",{
+            "to": emailNotification.email,
+            "subject": emailSubject,
+            "body": summary
+          });
         });
       }
     });
@@ -352,28 +354,40 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     return { name: notificationtype.name, notification: notification };
   }
 };
+NotificationEventHandler.formatEmailBody = function(notificationResults) {
+  var sb = new StringBuilder();
+  for(var i = 0; i < notificationResults.length; i++) {
+     sb.appendLine(notificationResults[i].name);
+     for(var j = 0; j < notificationResults[i].notification.length; j++) {
+       sb.appendLine(notificationResults[i].notification[j].hostname);
+       sb.appendLine(notificationResults[i].notification[j].count);
+       sb.appendLine(notificationResults[i].notification[j].message);
+     }
+  }
+  return sb;
+};
 
 var notificationEventHandler = new NotificationEventHandler();
 
-// on("ParsedLogEvent", function(logEvent){
-//   switch (logEvent.message_type) {
-//     case "ALL_PARENT_FAILURE":
-//       notificationEventHandler.handleAllParentFailure(logEvent);
-//       break;
-//     case "ROUND_RESPONSE_FROM_PARENT":
-//       notificationEventHandler.handleRoundResponseFromParent(logEvent);
-//       break;
-//   }
-//
-//   switch (logEvent.syslog_severity) {
-//     case "emergency":
-//     case "alert":
-//     case "critical":
-//     case "error":
-//       notificationEventHandler.handleError(logEvent);
-//       break;
-//     case "warning":
-//       notificationEventHandler.handleWarning(logEvent);
-//       break;
-//   }
-// });
+on("ParsedLogEvent", function(logEvent){
+  switch (logEvent.message_type) {
+    case "ALL_PARENT_FAILURE":
+      notificationEventHandler.handleAllParentFailure(logEvent);
+      break;
+    case "ROUND_RESPONSE_FROM_PARENT":
+      notificationEventHandler.handleRoundResponseFromParent(logEvent);
+      break;
+  }
+
+  switch (logEvent.syslog_severity) {
+    case "emergency":
+    case "alert":
+    case "critical":
+    case "error":
+      notificationEventHandler.handleError(logEvent);
+      break;
+    case "warning":
+      notificationEventHandler.handleWarning(logEvent);
+      break;
+  }
+});
