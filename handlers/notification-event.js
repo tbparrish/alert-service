@@ -29,19 +29,19 @@ var NotificationEvent = function(){
 };
 
 var NotificationEventHandler = function() {
-  // set notificationStagingDuration to configurable value
-  if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
-    notificationStagingDuration = config.notificationStagingDuration;
-  }
-  log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
-
-  // task scheduled to monitor notification HashMaps every 10 seconds (testing)
-  setInterval(this.monitorHashMapTask, 10 * 1000);
-  // task scheduled to monitor notification HashMaps every 5 minutes
-  //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
-
-  // task scheduled to send out emails every 24 hours
-  setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
+  // // set notificationStagingDuration to configurable value
+  // if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
+  //   notificationStagingDuration = config.notificationStagingDuration;
+  // }
+  // log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
+  //
+  // // task scheduled to monitor notification HashMaps every 10 seconds (testing)
+  // setInterval(this.monitorHashMapTask, 10 * 1000);
+  // // task scheduled to monitor notification HashMaps every 5 minutes
+  // //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
+  //
+  // // task scheduled to send out emails every 24 hours
+  // setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
 };
 NotificationEventHandler.prototype.handleError = function(logEvent) {
   var ne = null;
@@ -278,9 +278,10 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
         log.debug("****************************************************************************");
         log.debug("****************************************************************************");
         return event("EmailNotification",{
+          "type": "NOTIFICATION_EMAIL",
           "to": emailNotification.email,
           "subject": emailSubject,
-          "body": JSON.stringify(emailNotification.notificationSummary, null, 2)
+          "body": emailNotification.notificationSummary
         });
       }
     });
@@ -354,25 +355,25 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
 
 var notificationEventHandler = new NotificationEventHandler();
 
-on("ParsedLogEvent", function(logEvent){
-  switch (logEvent.message_type) {
-    case "ALL_PARENT_FAILURE":
-      notificationEventHandler.handleAllParentFailure(logEvent);
-      break;
-    case "ROUND_RESPONSE_FROM_PARENT":
-      notificationEventHandler.handleRoundResponseFromParent(logEvent);
-      break;
-  }
-
-  switch (logEvent.syslog_severity) {
-    case "emergency":
-    case "alert":
-    case "critical":
-    case "error":
-      notificationEventHandler.handleError(logEvent);
-      break;
-    case "warning":
-      notificationEventHandler.handleWarning(logEvent);
-      break;
-  }
-});
+// on("ParsedLogEvent", function(logEvent){
+//   switch (logEvent.message_type) {
+//     case "ALL_PARENT_FAILURE":
+//       notificationEventHandler.handleAllParentFailure(logEvent);
+//       break;
+//     case "ROUND_RESPONSE_FROM_PARENT":
+//       notificationEventHandler.handleRoundResponseFromParent(logEvent);
+//       break;
+//   }
+//
+//   switch (logEvent.syslog_severity) {
+//     case "emergency":
+//     case "alert":
+//     case "critical":
+//     case "error":
+//       notificationEventHandler.handleError(logEvent);
+//       break;
+//     case "warning":
+//       notificationEventHandler.handleWarning(logEvent);
+//       break;
+//   }
+// });
