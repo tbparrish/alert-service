@@ -272,16 +272,16 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
   }).then(function(emailNotifications){
     return emailNotifications.map(function(emailNotification){
       if( emailNotification.notificationSummary.length > 0 ){
-        // TODO: Need to format email
         log.debug("****************************************************************************");
         log.debug(emailSubject);
         log.debug("Sending email to "+emailNotification.email);
         log.debug("****************************************************************************");
         log.debug("****************************************************************************");
         return event("EmailNotification",{
+          "type": "NOTIFICATION_EMAIL",
           "to": emailNotification.email,
           "subject": emailSubject,
-          "body": JSON.stringify(emailNotification.notificationSummary, null, 2)
+          "body": emailNotification.notificationSummary
         });
       }
     });
