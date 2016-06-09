@@ -1,7 +1,6 @@
 var moment = require('moment'),
     setInterval = require('../helpers/timers').setInterval,
-    HashMap = require('hashmap'),
-    StringBuilder = require('stringbuilder');
+    HashMap = require('hashmap');
 
 // hashmap objects to store log event for keep track
 // of notification states.
@@ -273,17 +272,15 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
   }).then(function(emailNotifications){
     return emailNotifications.map(function(emailNotification){
       if( emailNotification.notificationSummary.length > 0 ){
-        return NotificationEventHandler.formatEmailBody(emailNotification.notificationSummary).build(function(err, summary) {
-          log.debug("****************************************************************************");
-          log.debug(emailSubject);
-          log.debug("Sending email to "+emailNotification.email);
-          log.debug("****************************************************************************");
-          log.debug("****************************************************************************");
-          return event("EmailNotification",{
-            "to": emailNotification.email,
-            "subject": emailSubject,
-            "body": summary
-          });
+        log.debug("****************************************************************************");
+        log.debug(emailSubject);
+        log.debug("Sending email to "+emailNotification.email);
+        log.debug("****************************************************************************");
+        log.debug("****************************************************************************");
+        return event("EmailNotification",{
+          "to": emailNotification.email,
+          "subject": emailSubject,
+          "body": JSON.stringify(emailNotification.notificationSummary, null, 2)
         });
       }
     });
@@ -353,18 +350,6 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     }
     return { name: notificationtype.name, notification: notification };
   }
-};
-NotificationEventHandler.formatEmailBody = function(notificationResults) {
-  var sb = new StringBuilder();
-  for(var i = 0; i < notificationResults.length; i++) {
-     sb.appendLine(notificationResults[i].name);
-     for(var j = 0; j < notificationResults[i].notification.length; j++) {
-       sb.appendLine(notificationResults[i].notification[j].hostname);
-       sb.appendLine(notificationResults[i].notification[j].count);
-       sb.appendLine(notificationResults[i].notification[j].message);
-     }
-  }
-  return sb;
 };
 
 var notificationEventHandler = new NotificationEventHandler();
