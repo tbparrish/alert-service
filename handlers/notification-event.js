@@ -51,6 +51,8 @@ NotificationEventHandler.prototype.handleError = function(logEvent) {
       log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
     } else if( ne.state === 1 ) {
       log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      ne.notificationMessage = logEvent.message;
+      command('NotificationUpdateCommand', {id: ne.id, message: logEvent.message});
     }
     ne.creationCounter++;
     ne.updatedAt = moment();
@@ -70,6 +72,8 @@ NotificationEventHandler.prototype.handleWarning = function(logEvent) {
       log.debug("Got KSI Service Warnings Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] warning state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
     } else if( ne.state === 1 ) {
       log.debug("Got KSI Service Warnings Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] warning state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      ne.notificationMessage = logEvent.message;
+      command('NotificationUpdateCommand', {id: ne.id, message: logEvent.message});
     }
     ne.creationCounter++;
     ne.updatedAt = moment();
@@ -92,6 +96,8 @@ NotificationEventHandler.prototype.handleAllParentFailure = function(logEvent) {
         log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
       } else if( ne.state === 1 ) {
         log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+        ne.notificationMessage = logEvent.message;
+        command('NotificationUpdateCommand', {id: ne.id, message: logEvent.message});
       }
       ne.creationCounter++;
       ne.updatedAt = moment();
