@@ -10,7 +10,13 @@ on("NotificationFindQuery", function(data){
     delete data.offset;
 
     if(data.orderField && data.orderSort){
-      order = data.orderField + " " + data.orderSort;
+      if(data.orderField === "hostName") {
+        order = '"hostName"' + " " + data.orderSort;
+      } else if(data.orderField === "createdAt") {
+          order = '"createdAt"' + " " + data.orderSort;
+      } else {
+        order = data.orderField + " " + data.orderSort;
+      }
       sortField = true;
       delete data.orderField;
       delete data.orderSort;
