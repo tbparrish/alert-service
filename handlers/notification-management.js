@@ -1,18 +1,39 @@
 var INCLUDE = [{ all: true, nested: true }];
 
 on("NotificationFindQuery", function(data){
-    var limit = data.limit ? data.limit : Number.MAX_SAFE_INTEGER;
-    var offset = data.offset ? data.offset : 0;
+  var limit, offset, order, length, sortField = false;
+
+  if(data) {
+    limit = data.limit ? data.limit : Number.MAX_SAFE_INTEGER;
+    offset =  data.offset ? data.offset : 0;
     delete data.limit;
     delete data.offset;
 
-    return models.Notification.findAll({where: data})
-      .then(function(notifications){
-        return models.Notification.findAll({where: data, limit: limit, offset: offset, order: '"createdAt" DESC', include: INCLUDE})
+    if(data.orderField && data.orderSort){
+      order = data.orderField + " " + data.orderSort;
+      sortField = true;
+      delete data.orderField;
+      delete data.orderSort;
+    }
+  } else {
+    limit = Number.MAX_SAFE_INTEGER;
+    offset = 0;
+  }
+
+  if(sortField) {
+    query = {where: data, limit: limit, offset: offset, order: '"createdAt" DESC', order: order, include: INCLUDE};
+  } else {
+    query = {where: data, limit: limit, offset: offset, order: '"createdAt" DESC', include: INCLUDE};
+  }
+
+  return models.Notification.findAll({where: data})
+    .then(function(notifications){
+      length = notifications.length;
+      return models.Notification.findAll(query)
       .then(function(notifications) {
-        return {totalItems: notifications.length, notifications: notifications };
+        return {totalRecords: length, notifications: notifications };
       });
-    });
+  });
 });
 on("NotificationGetQuery", function(data){
     return models.Notification.findOne({where: data, include: INCLUDE});

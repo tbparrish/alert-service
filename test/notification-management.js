@@ -34,7 +34,7 @@ describe('Notification Management', function(){
                   return ms.command('NotificationFindQuery');
               })
               .then(function (notifications) {
-                  expect(notifications).to.have.length(2);
+                  expect(notifications.notifications).to.have.length(2);
                   done();
               })
               .catch(done);
@@ -46,7 +46,7 @@ describe('Notification Management', function(){
                  return ms.command('NotificationFindQuery');
               })
               .then(function (notifications) {
-                 expect(notifications).to.have.length(1);
+                 expect(notifications.notifications).to.have.length(1);
                  done();
               })
               .catch(done);

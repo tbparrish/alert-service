@@ -49,8 +49,8 @@ describe('Note Management', function(){
             ms.command('NotificationDeleteCommand', {type: "KSI Service Errors"})
               .then(function () {
                 return ms.command('NotificationFindQuery').then(function(notifications){
-                  return ms.command('NoteDeleteCommand', {id: notifications[0].notes[0].id, notificationId: notifications[0].id}).then(function(){
-                    return ms.command('NoteFindQuery', notifications[0].notes[1]);
+                  return ms.command('NoteDeleteCommand', {id: notifications.notifications[0].notes[0].id, notificationId: notifications.notifications[0].id}).then(function(){
+                    return ms.command('NoteFindQuery', notifications.notifications[0].notes[1]);
                   });
                 });
               })
