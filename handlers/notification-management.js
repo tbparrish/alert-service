@@ -1,7 +1,7 @@
 var INCLUDE = [{ all: true, nested: true }];
 
 on("NotificationFindQuery", function(data){
-  var limit, offset, order, length, sortField = false;
+  var limit, offset, order = [], length;
 
   if(data) {
     limit = data.limit ? data.limit : Number.MAX_SAFE_INTEGER;
@@ -11,31 +11,31 @@ on("NotificationFindQuery", function(data){
 
     if(data.orderField && data.orderSort){
       if(data.orderField === "hostName") {
-        order = '"hostName"' + " " + data.orderSort;
+        order.push(['hostName', data.orderSort]);
+        order.push(['createdAt', 'DESC']);
       } else if(data.orderField === "createdAt") {
-          order = '"createdAt"' + " " + data.orderSort;
+        order.push(['createdAt', data.orderSort]);
+      } else if(data.orderField === "status") {
+        order.push(['status', data.orderSort]);
+        order.push(['createdAt', 'DESC']);
       } else {
-        order = data.orderField + " " + data.orderSort;
+        order.push([data.orderField, data.orderSort]);
+        order.push(['createdAt', 'DESC']);
       }
-      sortField = true;
       delete data.orderField;
       delete data.orderSort;
+    } else {
+      order.push(['createdAt', 'DESC']);
     }
   } else {
     limit = Number.MAX_SAFE_INTEGER;
     offset = 0;
   }
 
-  if(sortField) {
-    query = {where: data, limit: limit, offset: offset, order: '"createdAt" DESC', order: order, include: INCLUDE};
-  } else {
-    query = {where: data, limit: limit, offset: offset, order: '"createdAt" DESC', include: INCLUDE};
-  }
-
   return models.Notification.findAll({where: data})
     .then(function(notifications){
       length = notifications.length;
-      return models.Notification.findAll(query)
+      return models.Notification.findAll({where: data, limit: limit, offset: offset, order: order, include: INCLUDE})
       .then(function(notifications) {
         return {totalRecords: length, notifications: notifications };
       });
