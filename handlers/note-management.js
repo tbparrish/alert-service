@@ -13,7 +13,10 @@ on("NoteCreateCommand", function(data){
         .then(function(notification){
           return notification.update({status: "Closed", closedTime: Date.now(), closedBy: data.user}, {include: INCLUDE})
         .then(function(notification){
-          return command('NotificationGetQuery', {id: notification.id});
+          return command('NotificationGetQuery', {id: notification.id})
+          .then(function(notification){
+            return command('NotificationClosedCommand', notification);
+          });
         });
       });
     } else {

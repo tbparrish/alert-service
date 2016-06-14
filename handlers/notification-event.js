@@ -32,19 +32,17 @@ var NotificationEventHandler = function() {
   // sync internal cache with db
   NotificationEventHandler.syncCacheWithDB();
 
-  // // set notificationStagingDuration to configurable value
-  // if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
-  //   notificationStagingDuration = config.notificationStagingDuration;
-  // }
-  // log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
-  //
-  // // task scheduled to monitor notification HashMaps every 10 seconds (testing)
-  // setInterval(this.monitorHashMapTask, 10 * 1000);
-  // // task scheduled to monitor notification HashMaps every 5 minutes
-  // //setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
-  //
-  // // task scheduled to send out emails every 24 hours
-  // setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
+  // set notificationStagingDuration to configurable value
+  if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
+    notificationStagingDuration = config.notificationStagingDuration;
+  }
+  log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
+
+  // task scheduled to monitor notification HashMaps every 5 minutes
+  setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
+
+  // task scheduled to send out emails every 24 hours
+  setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
 };
 NotificationEventHandler.prototype.handleError = function(logEvent) {
   var ne = null;
@@ -130,7 +128,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     endTime = moment(moment().toArray());
     if( (value.state === 0) ) {
       startTime = moment(moment(value.createdAt).toArray());
-      mins = endTime.diff(startTime, 'seconds');
+      mins = endTime.diff(startTime, 'minutes');
       if( (mins > notificationStagingDuration) ) {
         log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
         // move notification from pending state to open state.
@@ -150,7 +148,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     endTime = moment(moment().toArray());
     if( (value.state === 0) && (value.creationCounter > 5) ) {
       startTime = moment(moment(value.createdAt).toArray());
-      mins = endTime.diff(startTime, 'seconds');
+      mins = endTime.diff(startTime, 'minutes');
       if( (mins > notificationStagingDuration) ) {
         log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes \n\t\t\t-Has occurred over 5 times \n\tChanging [host:"+key+"] warning state from pending to open state\n");
         // move notification from pending state to open state.
@@ -164,7 +162,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       }
     } else if( (value.state === 1) ) {
       startTime = moment(moment(value.updatedAt).toArray());
-      mins = endTime.diff(startTime, 'seconds');
+      mins = endTime.diff(startTime, 'minutes');
       if( (mins > 30) ) {
         log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
         // move notification from open state to close state.
@@ -183,7 +181,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     endTime = moment(moment().toArray());
     if( (value.state === 0) ) {
       startTime = moment(moment(value.createdAt).toArray());
-      mins = endTime.diff(startTime, 'seconds');
+      mins = endTime.diff(startTime, 'minutes');
       if( (mins > notificationStagingDuration) ) {
         log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
         // move notification from pending state to open state.
@@ -281,11 +279,6 @@ NotificationEventHandler.sendEmail = function(emailSubject) {
   }).then(function(emailNotifications){
     return emailNotifications.map(function(emailNotification){
       if( emailNotification.notificationSummary.length > 0 ){
-        log.debug("****************************************************************************");
-        log.debug(emailSubject);
-        log.debug("Sending email to "+emailNotification.email);
-        log.debug("****************************************************************************");
-        log.debug("****************************************************************************");
         return event("EmailNotification",{
           "type": "NOTIFICATION_EMAIL",
           "to": emailNotification.email,
@@ -389,25 +382,49 @@ NotificationEventHandler.syncCacheWithDB = function() {
 
 var notificationEventHandler = new NotificationEventHandler();
 
-// on("ParsedLogEvent", function(logEvent){
-//   switch (logEvent.message_type) {
-//     case "ALL_PARENT_FAILURE":
-//       notificationEventHandler.handleAllParentFailure(logEvent);
-//       break;
-//     case "ROUND_RESPONSE_FROM_PARENT":
-//       notificationEventHandler.handleRoundResponseFromParent(logEvent);
-//       break;
-//   }
-//
-//   switch (logEvent.syslog_severity) {
-//     case "emergency":
-//     case "alert":
-//     case "critical":
-//     case "error":
-//       notificationEventHandler.handleError(logEvent);
-//       break;
-//     case "warning":
-//       notificationEventHandler.handleWarning(logEvent);
-//       break;
-//   }
-// });
+on("ParsedLogEvent", function(logEvent){
+  switch (logEvent.message_type) {
+    case "ALL_PARENT_FAILURE":
+      notificationEventHandler.handleAllParentFailure(logEvent);
+      break;
+    case "ROUND_RESPONSE_FROM_PARENT":
+      notificationEventHandler.handleRoundResponseFromParent(logEvent);
+      break;
+  }
+
+  switch (logEvent.syslog_severity) {
+    case "emergency":
+    case "alert":
+    case "critical":
+    case "error":
+      notificationEventHandler.handleError(logEvent);
+      break;
+    case "warning":
+      notificationEventHandler.handleWarning(logEvent);
+      break;
+  }
+});
+
+on("NotificationClosedCommand", function(notification) {
+  // notification closure could have being emitted via front-end or
+  // based off of clousure createria in either case we we make sure its removed from cache.
+  // This is to make sure we are in sync with the db.
+  switch (notification.type) {
+    case "KSI Service Errors":
+      if(_errorNotificationMap.has(notification.hostName)) {
+        _errorNotificationMap.remove(notification.hostName);
+      }
+      break;
+    case "KSI Service Warnings":
+      if(_warningNotificationMap.has(notification.hostName)) {
+        _warningNotificationMap.remove(notification.hostName);
+      }
+      break;
+    case "Aggregator All Parent Failure":
+      if(_allParentFailureNotificationMap.has(notification.hostName)) {
+        _allParentFailureNotificationMap.remove(notification.hostName);
+      }
+      break;
+  }
+  return notification;
+});
