@@ -1,7 +1,10 @@
 var INCLUDE = [{ all: true, nested: true }];
 
 on("NotificationFindQuery", function(data){
-  var limit, offset, order = [], length;
+  var limit;
+  var offset;
+  var length;
+  var order = [];
 
   if(data) {
     limit = data.limit ? data.limit : Number.MAX_SAFE_INTEGER;
@@ -16,7 +19,12 @@ on("NotificationFindQuery", function(data){
       } else if(data.orderField === "createdAt") {
         order.push(['createdAt', data.orderSort]);
       } else if(data.orderField === "status") {
-        order.push(['status', data.orderSort]);
+        // if order to get this to work properly the sort order must be reversed.
+        if(data.orderSort === 'ASC') {
+          order.push(['status', 'DESC']);
+        } else {
+          order.push(['status', 'ASC']);
+        }
         order.push(['createdAt', 'DESC']);
       } else {
         order.push([data.orderField, data.orderSort]);
@@ -25,10 +33,11 @@ on("NotificationFindQuery", function(data){
       delete data.orderField;
       delete data.orderSort;
     } else {
+      order.push(['status', 'ASC']);
       order.push(['createdAt', 'DESC']);
     }
   } else {
-    limit = Number.MAX_SAFE_INTEGER;
+    limit = 100;
     offset = 0;
   }
 
