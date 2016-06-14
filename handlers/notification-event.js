@@ -29,6 +29,9 @@ var NotificationEvent = function(){
 };
 
 var NotificationEventHandler = function() {
+  // sync internal cache with db
+  NotificationEventHandler.syncCacheWithDB();
+
   // // set notificationStagingDuration to configurable value
   // if( config.notificationStagingDuration && (!isNaN(config.notificationStagingDuration))) {
   //   notificationStagingDuration = config.notificationStagingDuration;
@@ -166,7 +169,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
         log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
         // move notification from open state to close state.
         // condition: state = 1, and this warning has not been seen over the last 30 mins
-        command('NotificationUpdateCommand', {id: value.id, state: 2, status: "Closed"}).then(function(notification) {
+        command('NotificationUpdateCommand', {id: value.id, status: "Closed"}).then(function(notification) {
             command('NoteCreateCommand', {"user": "Overwatch",  "closingNote": true,"content":"No longer happening", "notificationId": notification.id });
         });
         value.state = 2;
@@ -227,7 +230,7 @@ NotificationEventHandler.handleErrorState = function(logEvent) {
       _errorNotificationMap.remove(logEvent.appliance_hostname);
     } else if(ne.state === 1) {
       log.debug("Got "+logEvent.message_type+" Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State\n\tChanging [host:"+logEvent.appliance_hostname+"] error state from open to close\n");
-      command('NotificationUpdateCommand',{id: ne.id, state: 2, status: "Closed"}).then(function(notification){
+      command('NotificationUpdateCommand',{id: ne.id, status: "Closed"}).then(function(notification){
           command('NoteCreateCommand', {"user": "Overwatch",  "closingNote": true,"content":"Received service message", "notificationId": notification.id });
       });
       ne.state = 2;
@@ -243,7 +246,7 @@ NotificationEventHandler.handleErrorState = function(logEvent) {
       _allParentFailureNotificationMap.remove(logEvent.appliance_hostname);
     } else if(ne.state === 1) {
       log.debug("Got "+logEvent.message_type+" Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State\n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state from open to close\n");
-      command('NotificationUpdateCommand',{id: ne.id, state: 2, status: "Closed"}).then(function(notification){
+      command('NotificationUpdateCommand',{id: ne.id, status: "Closed"}).then(function(notification){
           command('NoteCreateCommand', {"user": "Overwatch",  "closingNote": true,"content":"Received service message", "notificationId": notification.id });
       });
       ne.state = 2;
@@ -357,6 +360,31 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     }
     return { name: notificationtype.name, notification: notification };
   }
+};
+NotificationEventHandler.syncCacheWithDB = function() {
+  // add all open notifications to cache at start up
+  return command('NotificationFindQuery',{status: "Open", offset: 0, limit: Number.MAX_SAFE_INTEGER})
+  .then(function(notifications) {
+    return notifications.notifications.map(function(notification){
+      // create open notification
+      var ne = new NotificationEvent();
+      ne.id = notification.id;
+      ne.creationCounter++;
+      ne.notificationMessage = notification.message;
+      ne.state = 1;
+      switch (notification.type) {
+        case "KSI Service Errors":
+              _errorNotificationMap.set(notification.hostName, ne);
+          break;
+        case "KSI Service Warnings":
+              _warningNotificationMap.set(notification.hostName, ne);
+          break;
+        case "Aggregator All Parent Failure":
+              _allParentFailureNotificationMap.set(notification.hostName, ne);
+          break;
+      }
+    });
+  });
 };
 
 var notificationEventHandler = new NotificationEventHandler();
