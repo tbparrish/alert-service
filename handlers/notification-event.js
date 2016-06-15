@@ -49,16 +49,18 @@ NotificationEventHandler.prototype.handleError = function(logEvent) {
   if(_errorNotificationMap.has(logEvent.appliance_hostname)) {
     ne = _errorNotificationMap.get(logEvent.appliance_hostname);
     if( ne.state === 0 ) {
-      log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.updateCounter+" to "+(ne.updateCounter+1)+"\n");
     } else if( ne.state === 1 ) {
-      log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      log.debug("Got KSI Service Errors Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] error state count from "+ne.updateCounter+" to "+(ne.updateCounter+1)+"\n");
       ne.notificationMessage = logEvent.message;
       command('NotificationUpdateCommand', {id: ne.id, message: logEvent.message});
     }
+    ne.updateCounter++;
     ne.creationCounter++;
     ne.updatedAt = moment();
   } else {
     ne = new NotificationEvent();
+    ne.updateCounter++;
     ne.creationCounter++;
     ne.notificationMessage = logEvent.message;
     _errorNotificationMap.set(logEvent.appliance_hostname, ne);
@@ -70,16 +72,18 @@ NotificationEventHandler.prototype.handleWarning = function(logEvent) {
   if(_warningNotificationMap.has(logEvent.appliance_hostname)) {
     ne = _warningNotificationMap.get(logEvent.appliance_hostname);
     if( ne.state === 0 ) {
-      log.debug("Got KSI Service Warnings Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] warning state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      log.debug("Got KSI Service Warnings Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] warning state count from "+ne.updateCounter+" to "+(ne.updateCounter+1)+"\n");
     } else if( ne.state === 1 ) {
-      log.debug("Got KSI Service Warnings Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] warning state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+      log.debug("Got KSI Service Warnings Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] warning state count from "+ne.updateCounter+" to "+(ne.updateCounter+1)+"\n");
       ne.notificationMessage = logEvent.message;
       command('NotificationUpdateCommand', {id: ne.id, message: logEvent.message});
     }
+    ne.updateCounter++;
     ne.creationCounter++;
     ne.updatedAt = moment();
   } else {
     ne = new NotificationEvent();
+    ne.updateCounter++;
     ne.creationCounter++;
     ne.notificationMessage = logEvent.message;
     _warningNotificationMap.set(logEvent.appliance_hostname, ne);
@@ -94,16 +98,18 @@ NotificationEventHandler.prototype.handleAllParentFailure = function(logEvent) {
     if(_allParentFailureNotificationMap.has(logEvent.appliance_hostname)) {
       ne = _allParentFailureNotificationMap.get(logEvent.appliance_hostname);
       if( ne.state === 0 ) {
-        log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+        log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Pending State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.updateCounter+" to "+(ne.updateCounter+1)+"\n");
       } else if( ne.state === 1 ) {
-        log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.creationCounter+" to "+(ne.creationCounter+1)+"\n");
+        log.debug("Got All Parent Event [host:"+logEvent.appliance_hostname+"]\n\tCondition:\t-Open State \n\tChanging [host:"+logEvent.appliance_hostname+"] all parent failure state count from "+ne.updateCounter+" to "+(ne.updateCounter+1)+"\n");
         ne.notificationMessage = logEvent.message;
         command('NotificationUpdateCommand', {id: ne.id, message: logEvent.message});
       }
+      ne.updateCounter++;
       ne.creationCounter++;
       ne.updatedAt = moment();
     } else {
       ne = new NotificationEvent();
+      ne.updateCounter++;
       ne.creationCounter++;
       ne.notificationMessage = logEvent.message;
       _allParentFailureNotificationMap.set(logEvent.appliance_hostname, ne);
@@ -129,7 +135,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     if( (value.state === 0) ) {
       startTime = moment(moment(value.createdAt).toArray());
       mins = endTime.diff(startTime, 'minutes');
-      if( (mins > notificationStagingDuration) ) {
+      if( (mins >= notificationStagingDuration) ) {
         log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
         // move notification from pending state to open state.
         // condition: state = 0 and it was created more than 10 mins ago.
@@ -149,7 +155,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     if( (value.state === 0) && (value.creationCounter > 5) ) {
       startTime = moment(moment(value.createdAt).toArray());
       mins = endTime.diff(startTime, 'minutes');
-      if( (mins > notificationStagingDuration) ) {
+      if( (mins >= notificationStagingDuration) ) {
         log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes \n\t\t\t-Has occurred over 5 times \n\tChanging [host:"+key+"] warning state from pending to open state\n");
         // move notification from pending state to open state.
         // condition: state = 0, counter > 5, and it was created more than 10 ago.
@@ -163,7 +169,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     } else if( (value.state === 1) ) {
       startTime = moment(moment(value.updatedAt).toArray());
       mins = endTime.diff(startTime, 'minutes');
-      if( (mins > 30) ) {
+      if( (mins >= 30) ) {
         log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
         // move notification from open state to close state.
         // condition: state = 1, and this warning has not been seen over the last 30 mins
@@ -182,7 +188,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
     if( (value.state === 0) ) {
       startTime = moment(moment(value.createdAt).toArray());
       mins = endTime.diff(startTime, 'minutes');
-      if( (mins > notificationStagingDuration) ) {
+      if( (mins >= notificationStagingDuration) ) {
         log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
         // move notification from pending state to open state.
         // condition: state = 0 and it was created more than 10 mins ago.
@@ -295,7 +301,7 @@ NotificationEventHandler.buildOnceEmailSummary = function(notificationtype){
     if(notificationtype.once === true) {
       _errorNotificationMap.forEach(function(value, key) {
         if( (value.movedToOpenState === true) && (value.state === 1) ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
+          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
           value.movedToOpenState = false;
         }
       });
@@ -305,7 +311,7 @@ NotificationEventHandler.buildOnceEmailSummary = function(notificationtype){
     if(notificationtype.once === true) {
       _warningNotificationMap.forEach(function(value, key) {
         if( (value.movedToOpenState === true) && (value.state === 1) ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
+          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
           value.movedToOpenState = false;
         }
       });
@@ -315,7 +321,7 @@ NotificationEventHandler.buildOnceEmailSummary = function(notificationtype){
     if(notificationtype.once === true) {
       _allParentFailureNotificationMap.forEach(function(value, key) {
         if( (value.movedToOpenState === true) && (value.state === 1) ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
+          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
           value.movedToOpenState = false;
         }
       });
@@ -329,7 +335,7 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     if(notificationtype.daily === true) {
       _errorNotificationMap.forEach(function(value, key) {
         if( value.state === 1 ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
+          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
         }
       });
     }
@@ -338,7 +344,7 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     if(notificationtype.daily === true) {
       _warningNotificationMap.forEach(function(value, key) {
         if( value.state === 1 ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
+          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
         }
       });
     }
@@ -347,7 +353,7 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     if(notificationtype.daily === true) {
       _allParentFailureNotificationMap.forEach(function(value, key) {
         if( value.state === 1 ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.creationCounter});
+          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
         }
       });
     }
@@ -362,6 +368,7 @@ NotificationEventHandler.syncCacheWithDB = function() {
       // create open notification
       var ne = new NotificationEvent();
       ne.id = notification.id;
+      ne.updateCounter++;
       ne.creationCounter++;
       ne.notificationMessage = notification.message;
       ne.state = 1;
