@@ -12,6 +12,8 @@ var _allParentFailureNotificationMap = new HashMap();
 var DAILY_EMAIL_SUBJECT = "Overwatch Daily Notification Summary";
 var ONCE_EMAIL_SUBJECT  = "Overwatch Once Notification Summary";
 
+var OVERWATCH_URL = null;
+
 // default value to stage notification in pending state before
 // moving to open state.
 var notificationStagingDuration = 10;
@@ -26,9 +28,25 @@ var NotificationEvent = function(){
   this.creationCounter = 0;
   this.updateCounter = 0;
   this.movedToOpenState = false;
+  this.link = null;
 };
 
 var NotificationEventHandler = function() {
+  // build url for overwatch notification link
+  query('SystemPropertiesGet', {props: "deployment"}).then(function(response){
+    var deploymentSettings = JSON.parse(response.deployment);
+    var hostname = deploymentSettings.overwatch.hostname;
+    if (!hostname) {
+      throw new Error('missing host for overwatch in settings');
+    } else {
+      OVERWATCH_URL = "http://"+hostname+"/notification?notificationId={notificationId}&hostname={hostname}";
+      log.debug("OVERWATCH_URL = " + OVERWATCH_URL);
+    }
+  }).catch(function(err){
+    log.debug(err);
+    log.debug("Invalid overwatch host settings");
+  });
+
   // sync internal cache with db
   NotificationEventHandler.syncCacheWithDB();
 
@@ -141,10 +159,13 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
         // condition: state = 0 and it was created more than 10 mins ago.
         command('NotificationCreateCommand',{"type": "KSI Service Errors",  "status":"Open", "hostName": key, "message": value.notificationMessage}).then(function(notification){
             value.id = notification.id;
-          });
-          value.creationCounter = 0;
-          value.state = 1;
-          value.movedToOpenState = true;
+            value.creationCounter = 0;
+            value.state = 1;
+            value.movedToOpenState = true;
+            if(OVERWATCH_URL) {
+              value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+            }
+        });
       }
     }
   });
@@ -161,10 +182,13 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
         // condition: state = 0, counter > 5, and it was created more than 10 ago.
         command('NotificationCreateCommand',{"type": "KSI Service Warnings",  "status":"Open", "hostName": key,"message": value.notificationMessage}).then(function(notification){
             value.id = notification.id;
-          });
-          value.creationCounter = 0;
-          value.state = 1;
-          value.movedToOpenState = true;
+            value.creationCounter = 0;
+            value.state = 1;
+            value.movedToOpenState = true;
+            if(OVERWATCH_URL) {
+              value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+            }
+        });
       }
     } else if( (value.state === 1) ) {
       startTime = moment(moment(value.updatedAt).toArray());
@@ -194,10 +218,13 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
         // condition: state = 0 and it was created more than 10 mins ago.
         command('NotificationCreateCommand',{"type": "Aggregator All Parent Failure",  "status":"Open", "hostName": key,"message": value.notificationMessage}).then(function(notification){
             value.id = notification.id;
+            value.creationCounter = 0;
+            value.state = 1;
+            value.movedToOpenState = true;
+            if(OVERWATCH_URL) {
+              value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+            }
         });
-        value.creationCounter = 0;
-        value.state = 1;
-        value.movedToOpenState = true;
       }
     }
   });
@@ -301,7 +328,11 @@ NotificationEventHandler.buildOnceEmailSummary = function(notificationtype){
     if(notificationtype.once === true) {
       _errorNotificationMap.forEach(function(value, key) {
         if( (value.movedToOpenState === true) && (value.state === 1) ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          if(value.link){
+            notification.push({link: value.link, hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          } else {
+            notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          }
           value.movedToOpenState = false;
         }
       });
@@ -311,7 +342,11 @@ NotificationEventHandler.buildOnceEmailSummary = function(notificationtype){
     if(notificationtype.once === true) {
       _warningNotificationMap.forEach(function(value, key) {
         if( (value.movedToOpenState === true) && (value.state === 1) ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          if(value.link){
+            notification.push({link: value.link, hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          } else {
+            notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          }
           value.movedToOpenState = false;
         }
       });
@@ -321,7 +356,11 @@ NotificationEventHandler.buildOnceEmailSummary = function(notificationtype){
     if(notificationtype.once === true) {
       _allParentFailureNotificationMap.forEach(function(value, key) {
         if( (value.movedToOpenState === true) && (value.state === 1) ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          if(value.link){
+            notification.push({link: value.link, hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          } else {
+            notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          }
           value.movedToOpenState = false;
         }
       });
@@ -335,7 +374,11 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     if(notificationtype.daily === true) {
       _errorNotificationMap.forEach(function(value, key) {
         if( value.state === 1 ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          if(value.link){
+            notification.push({link: value.link, hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          } else {
+            notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          }
         }
       });
     }
@@ -344,7 +387,11 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     if(notificationtype.daily === true) {
       _warningNotificationMap.forEach(function(value, key) {
         if( value.state === 1 ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          if(value.link){
+            notification.push({link: value.link, hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          } else {
+            notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          }
         }
       });
     }
@@ -353,7 +400,11 @@ NotificationEventHandler.buildDailyEmailSummary = function(notificationtype){
     if(notificationtype.daily === true) {
       _allParentFailureNotificationMap.forEach(function(value, key) {
         if( value.state === 1 ) {
-          notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          if(value.link){
+            notification.push({link: value.link, hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          } else {
+            notification.push({hostname: key, message: value.notificationMessage, count: value.updateCounter});
+          }
         }
       });
     }
