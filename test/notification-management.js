@@ -12,15 +12,14 @@ describe('Notification Management', function(){
 
     describe('Notification', function () {
         it('should create', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
-            "message": "This should create a notification", "closedTime": Date.now(), "closedBy": "System Admin" })
+            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors", "status":"Closed", "hostName": "Guardtime",
+            "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
                 expect(notification).to.have.property('id');
                 expect(notification).to.have.property('closedTime');
                 expect(notification).to.have.property('type', 'KSI Service Errors');
                 expect(notification).to.have.property('status', 'Closed');
                 expect(notification).to.have.property('hostName', 'Guardtime');
-                expect(notification).to.have.property('message', 'This should create a notification');
                 expect(notification).to.have.property('closedBy', 'System Admin');
                 done();
               })
@@ -29,7 +28,7 @@ describe('Notification Management', function(){
 
         it('should find notification', function(done){
             ms.command('NotificationCreateCommand', {"type": "KSI Service Warnings",  "status":"Closed", "hostName": "Guardtime",
-            "message": "This should find a notification", "closedTime": Date.now(), "closedBy": "System Admin" })
+             "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function(){
                   return ms.command('NotificationFindQuery');
               })
@@ -54,7 +53,7 @@ describe('Notification Management', function(){
 
         it('should update', function(done){
             ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Closed", "hostName": "Guardtime",
-            "message": "This should update a notification", "closedTime": Date.now(), "closedBy": "System Admin" })
+            "closedTime": Date.now(), "closedBy": "System Admin" })
               .then(function (notification) {
                   notification.type = "Aggregator All Parent Failure";
                   return ms.command('NotificationUpdateCommand', notification);

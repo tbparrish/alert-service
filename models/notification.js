@@ -12,15 +12,18 @@ var Notification = model({
             validate:  {isIn: [['Open', 'Closed']]}
     },
     hostName: { type: Sequelize.STRING, allowNull: false },
-    message: { type: Sequelize.TEXT, allowNull: false },
     closedTime: { type: Sequelize.DATE, allowNull: true },
     closedBy: { type: Sequelize.STRING, allowNull: true }
   }
 });
 
 var Note = require('./note');
+var LogMessage = require('./logMessage');
 
 Notification.hasMany(Note, { onDelete: "CASCADE" });
 Note.belongsTo(Notification, { onDelete: "CASCADE" });
+
+Notification.hasMany(LogMessage, { onDelete: "CASCADE" });
+LogMessage.belongsTo(Notification, { onDelete: "CASCADE" });
 
 module.exports = Notification;
