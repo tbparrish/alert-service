@@ -156,94 +156,109 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
   var endTime = null;
   var mins = null;
 
-  // _errorNotificationMap
-  _errorNotificationMap.forEach(function(value, key) {
-    endTime = moment(moment().toArray());
-    if( (value.state === 0) ) {
-      startTime = moment(moment(value.createdAt).toArray());
-      mins = endTime.diff(startTime, 'minutes');
-      if( (mins >= notificationStagingDuration) ) {
-        log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
-        // move notification from pending state to open state.
-        // condition: state = 0 and it was created more than 10 mins ago.
-        command('NotificationCreateCommand',{"type": "KSI Service Errors",  "status":"Open", "hostName": key})
-          .then(function(notification){
-            value.id = notification.id;
-            value.creationCounter = 0;
-            value.state = 1;
-            value.movedToOpenState = true;
-            if(OVERWATCH_URL) {
-              value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
-            }
-            command('LogMessageCreateCommand', {notificationId: value.id, message: value.notificationMessage[0]});
-        });
+  query('ApplianceList').then(function (appliances) {
+    return appliances.map(function(appliance){
+      return appliance.hostname;
+    });
+  }).then(function(hostnames){
+    // _errorNotificationMap
+    _errorNotificationMap.forEach(function(value, key) {
+      endTime = moment(moment().toArray());
+      if( (value.state === 0) ) {
+        startTime = moment(moment(value.createdAt).toArray());
+        mins = endTime.diff(startTime, 'minutes');
+        if( (mins >= notificationStagingDuration) ) {
+          // do not process host that we do not know. (pending to open state)
+          if (hostnames.indexOf(key) >= 0){
+            log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
+            // move notification from pending state to open state.
+            // condition: state = 0 and it was created more than 10 mins ago.
+            command('NotificationCreateCommand',{"type": "KSI Service Errors",  "status":"Open", "hostName": key})
+              .then(function(notification){
+                value.id = notification.id;
+                value.creationCounter = 0;
+                value.state = 1;
+                value.movedToOpenState = true;
+                if(OVERWATCH_URL) {
+                  value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+                }
+                command('LogMessageCreateCommand', {notificationId: value.id, message: value.notificationMessage[0]});
+            });
+          }
+        }
       }
-    }
-  });
+    });
 
-  // _warningNotificationMap
-  _warningNotificationMap.forEach(function(value, key) {
-    endTime = moment(moment().toArray());
-    if( (value.state === 0) && (value.creationCounter > 5) ) {
-      startTime = moment(moment(value.createdAt).toArray());
-      mins = endTime.diff(startTime, 'minutes');
-      if( (mins >= notificationStagingDuration) ) {
-        log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes \n\t\t\t-Has occurred over 5 times \n\tChanging [host:"+key+"] warning state from pending to open state\n");
-        // move notification from pending state to open state.
-        // condition: state = 0, counter > 5, and it was created more than 10 ago.
-        command('NotificationCreateCommand',{"type": "KSI Service Warnings",  "status":"Open", "hostName": key}).then(function(notification){
-            value.id = notification.id;
-            value.creationCounter = 0;
-            value.state = 1;
-            value.movedToOpenState = true;
-            if(OVERWATCH_URL) {
-              value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+    // _warningNotificationMap
+    _warningNotificationMap.forEach(function(value, key) {
+      endTime = moment(moment().toArray());
+      if( (value.state === 0) && (value.creationCounter > 5) ) {
+        startTime = moment(moment(value.createdAt).toArray());
+        mins = endTime.diff(startTime, 'minutes');
+        if( (mins >= notificationStagingDuration) ) {
+            // do not process host that we do not know. (pending to open state)
+            if (hostnames.indexOf(key) >= 0){
+              log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes \n\t\t\t-Has occurred over 5 times \n\tChanging [host:"+key+"] warning state from pending to open state\n");
+              // move notification from pending state to open state.
+              // condition: state = 0, counter > 5, and it was created more than 10 ago.
+              command('NotificationCreateCommand',{"type": "KSI Service Warnings",  "status":"Open", "hostName": key}).then(function(notification){
+                  value.id = notification.id;
+                  value.creationCounter = 0;
+                  value.state = 1;
+                  value.movedToOpenState = true;
+                  if(OVERWATCH_URL) {
+                    value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+                  }
+                  command('LogMessageCreateCommand', {notificationId: value.id, message: value.notificationMessage[0]});
+              });
             }
-            command('LogMessageCreateCommand', {notificationId: value.id, message: value.notificationMessage[0]});
-        });
+        }
+      } else if( (value.state === 1) ) {
+        startTime = moment(moment(value.updatedAt).toArray());
+        mins = endTime.diff(startTime, 'minutes');
+        if( (mins >= 30) ) {
+          log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
+          // move notification from open state to close state.
+          // condition: state = 1, and this warning has not been seen over the last 30 mins
+          command('NotificationUpdateCommand', {id: value.id, status: "Closed"}).then(function(notification) {
+              command('NoteCreateCommand', {"user": "Overwatch",  "closingNote": true,"content":"No longer happening", "notificationId": notification.id });
+          });
+          value.state = 2;
+          _warningNotificationMap.remove(key);
+        }
       }
-    } else if( (value.state === 1) ) {
-      startTime = moment(moment(value.updatedAt).toArray());
-      mins = endTime.diff(startTime, 'minutes');
-      if( (mins >= 30) ) {
-        log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
-        // move notification from open state to close state.
-        // condition: state = 1, and this warning has not been seen over the last 30 mins
-        command('NotificationUpdateCommand', {id: value.id, status: "Closed"}).then(function(notification) {
-            command('NoteCreateCommand', {"user": "Overwatch",  "closingNote": true,"content":"No longer happening", "notificationId": notification.id });
-        });
-        value.state = 2;
-        _warningNotificationMap.remove(key);
-      }
-    }
-  });
+    });
 
-  // _allParentFailureNotificationMap
-  _allParentFailureNotificationMap.forEach(function(value, key) {
-    endTime = moment(moment().toArray());
-    if( (value.state === 0) ) {
-      startTime = moment(moment(value.createdAt).toArray());
-      mins = endTime.diff(startTime, 'minutes');
-      if( (mins >= notificationStagingDuration) ) {
-        log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
-        // move notification from pending state to open state.
-        // condition: state = 0 and it was created more than 10 mins ago.
-        command('NotificationCreateCommand',{"type": "Aggregator All Parent Failure",  "status":"Open", "hostName": key}).then(function(notification){
-            value.id = notification.id;
-            value.creationCounter = 0;
-            value.state = 1;
-            value.movedToOpenState = true;
-            if(OVERWATCH_URL) {
-              value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+    // _allParentFailureNotificationMap
+    _allParentFailureNotificationMap.forEach(function(value, key) {
+      endTime = moment(moment().toArray());
+      if( (value.state === 0) ) {
+        startTime = moment(moment(value.createdAt).toArray());
+        mins = endTime.diff(startTime, 'minutes');
+          if( (mins >= notificationStagingDuration) ) {
+            // do not process host that we do not know. (pending to open state)
+            if (hostnames.indexOf(key) >= 0){
+              log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
+              // move notification from pending state to open state.
+              // condition: state = 0 and it was created more than 10 mins ago.
+              command('NotificationCreateCommand',{"type": "Aggregator All Parent Failure",  "status":"Open", "hostName": key}).then(function(notification){
+                  value.id = notification.id;
+                  value.creationCounter = 0;
+                  value.state = 1;
+                  value.movedToOpenState = true;
+                  if(OVERWATCH_URL) {
+                    value.link = OVERWATCH_URL.replace("{notificationId}", value.id).replace("{hostname}",key);
+                  }
+                  command('LogMessageCreateCommand', {notificationId: value.id, message: value.notificationMessage[0]});
+              });
             }
-            command('LogMessageCreateCommand', {notificationId: value.id, message: value.notificationMessage[0]});
-        });
-      }
-    }
-  });
+          }
+        }
+    });
 
-  // send mail for all of the notifications that just moved from pending to opened state.
-  NotificationEventHandler.sendEmail(ONCE_EMAIL_SUBJECT);
+    // send mail for all of the notifications that just moved from pending to opened state.
+    NotificationEventHandler.sendEmail(ONCE_EMAIL_SUBJECT);
+  });
 };
 
 NotificationEventHandler.getUserNotificationPreferences = function() {
@@ -454,29 +469,41 @@ NotificationEventHandler.syncCacheWithDB = function() {
     });
   });
 };
-
 var notificationEventHandler = new NotificationEventHandler();
 
 on("ParsedLogEvent", function(logEvent){
-  switch (logEvent.message_type) {
-    case "ALL_PARENT_FAILURE":
-      notificationEventHandler.handleAllParentFailure(logEvent);
-      break;
-    case "ROUND_RESPONSE_FROM_PARENT":
-      notificationEventHandler.handleRoundResponseFromParent(logEvent);
-      break;
-  }
+  if( (logEvent.message_type === "ALL_PARENT_FAILURE") || (logEvent.message_type === "ROUND_RESPONSE_FROM_PARENT") ||
+      (logEvent.syslog_severity === "emergency") || (logEvent.syslog_severity === "alert") || (logEvent.syslog_severity === "critical") ||
+      (logEvent.syslog_severity === "error") || (logEvent.syslog_severity === "warning")) {
+    query('ApplianceList').then(function (appliances) {
+      return appliances.map(function(appliance){
+        return appliance.hostname;
+      });
+    }).then(function(hostnames){
+      // do not process host that we do not know.
+      if (hostnames.indexOf(logEvent.appliance_hostname) >= 0){
+        switch (logEvent.message_type) {
+          case "ALL_PARENT_FAILURE":
+            notificationEventHandler.handleAllParentFailure(logEvent);
+            break;
+          case "ROUND_RESPONSE_FROM_PARENT":
+            notificationEventHandler.handleRoundResponseFromParent(logEvent);
+            break;
+        }
 
-  switch (logEvent.syslog_severity) {
-    case "emergency":
-    case "alert":
-    case "critical":
-    case "error":
-      notificationEventHandler.handleError(logEvent);
-      break;
-    case "warning":
-      notificationEventHandler.handleWarning(logEvent);
-      break;
+        switch (logEvent.syslog_severity) {
+          case "emergency":
+          case "alert":
+          case "critical":
+          case "error":
+            notificationEventHandler.handleError(logEvent);
+            break;
+          case "warning":
+            notificationEventHandler.handleWarning(logEvent);
+            break;
+        }
+      }
+    });
   }
 });
 
