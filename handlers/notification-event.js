@@ -477,8 +477,7 @@ on("ParsedLogEvent", function(logEvent){
       (logEvent.syslog_severity === "error") || (logEvent.syslog_severity === "warning")) {
 
     if(logEvent.epoch_time && logEvent.logstash_received_at && logEvent.message){
-      logEvent.message  =
-        logEvent.message.replace(logEvent.epoch_time, logEvent.logstash_received_at).trim();
+      logEvent.message  = logEvent.logstash_received_at + " " + logEvent.message;
     }
 
     query('ApplianceList').then(function (appliances) {
