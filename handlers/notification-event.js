@@ -475,6 +475,11 @@ on("ParsedLogEvent", function(logEvent){
   if( (logEvent.message_type === "ALL_PARENT_FAILURE") || (logEvent.message_type === "ROUND_RESPONSE_FROM_PARENT") ||
       (logEvent.syslog_severity === "emergency") || (logEvent.syslog_severity === "alert") || (logEvent.syslog_severity === "critical") ||
       (logEvent.syslog_severity === "error") || (logEvent.syslog_severity === "warning")) {
+
+    if(logEvent.epoch_time && logEvent.logstash_received_at && logEvent.message){
+      logEvent.message  = logEvent.logstash_received_at + " " + logEvent.message;
+    }
+
     query('ApplianceList').then(function (appliances) {
       return appliances.map(function(appliance){
         return appliance.hostname;
