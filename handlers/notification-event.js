@@ -43,7 +43,7 @@ var NotificationEventHandler = function() {
       throw new Error('missing host for overwatch in settings');
     } else {
       OVERWATCH_URL = hostname+"/notification?notificationId={notificationId}&hostname={hostname}";
-      log.debug("OVERWATCH_URL = " + OVERWATCH_URL);
+      log.debug("OVERWATCH_URL = " +OVERWATCH_URL);
     }
   }).catch(function(err){
     log.debug(err);
@@ -60,7 +60,9 @@ var NotificationEventHandler = function() {
   log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
 
   // task scheduled to monitor notification HashMaps every 5 minutes
-  setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
+  // setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
+  setInterval(this.monitorHashMapTask, 20 * 1000);
+
 
   // task scheduled to send out emails every 24 hours
   setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
@@ -166,14 +168,14 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       endTime = moment(moment().toArray());
       if( (value.state === 0) ) {
         startTime = moment(moment(value.createdAt).toArray());
-        mins = endTime.diff(startTime, 'minutes');
+        mins = endTime.diff(startTime, 'seconds');
         if( (mins >= notificationStagingDuration) ) {
           // do not process host that we do not know. (pending to open state)
           if (hostnames.indexOf(key) >= 0){
             log.debug("Got KSI Service Errors Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] error state from pending to open state\n");
             // move notification from pending state to open state.
             // condition: state = 0 and it was created more than 10 mins ago.
-            command('NotificationCreateCommand',{"type": "KSI Service Errors",  "status":"Open", "hostName": key})
+            command('NotificationCreateCommand',{"notificationType": "KSI Service Errors",  "status":"Open", "hostName": key})
               .then(function(notification){
                 value.id = notification.id;
                 value.creationCounter = 0;
@@ -194,14 +196,14 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       endTime = moment(moment().toArray());
       if( (value.state === 0) && (value.creationCounter > 5) ) {
         startTime = moment(moment(value.createdAt).toArray());
-        mins = endTime.diff(startTime, 'minutes');
+        mins = endTime.diff(startTime, 'seconds');
         if( (mins >= notificationStagingDuration) ) {
             // do not process host that we do not know. (pending to open state)
             if (hostnames.indexOf(key) >= 0){
               log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes \n\t\t\t-Has occurred over 5 times \n\tChanging [host:"+key+"] warning state from pending to open state\n");
               // move notification from pending state to open state.
               // condition: state = 0, counter > 5, and it was created more than 10 ago.
-              command('NotificationCreateCommand',{"type": "KSI Service Warnings",  "status":"Open", "hostName": key}).then(function(notification){
+              command('NotificationCreateCommand',{"notificationType": "KSI Service Warnings",  "status":"Open", "hostName": key}).then(function(notification){
                   value.id = notification.id;
                   value.creationCounter = 0;
                   value.state = 1;
@@ -215,7 +217,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
         }
       } else if( (value.state === 1) ) {
         startTime = moment(moment(value.updatedAt).toArray());
-        mins = endTime.diff(startTime, 'minutes');
+        mins = endTime.diff(startTime, 'seconds');
         if( (mins >= 30) ) {
           log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
           // move notification from open state to close state.
@@ -234,14 +236,14 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       endTime = moment(moment().toArray());
       if( (value.state === 0) ) {
         startTime = moment(moment(value.createdAt).toArray());
-        mins = endTime.diff(startTime, 'minutes');
+        mins = endTime.diff(startTime, 'seconds');
           if( (mins >= notificationStagingDuration) ) {
             // do not process host that we do not know. (pending to open state)
             if (hostnames.indexOf(key) >= 0){
               log.debug("Got All Parent Failure Event [host:"+key+"]\n\tCondition:\t-Pending State\n\t\t\t-Has been in pending state for more than 10 minutes  \n\tChanging [host:"+key+"] all parent failure state from pending to open state\n");
               // move notification from pending state to open state.
               // condition: state = 0 and it was created more than 10 mins ago.
-              command('NotificationCreateCommand',{"type": "Aggregator All Parent Failure",  "status":"Open", "hostName": key}).then(function(notification){
+              command('NotificationCreateCommand',{"notificationType": "Aggregator All Parent Failure",  "status":"Open", "hostName": key}).then(function(notification){
                   value.id = notification.id;
                   value.creationCounter = 0;
                   value.state = 1;
@@ -455,7 +457,7 @@ NotificationEventHandler.syncCacheWithDB = function() {
         ne.notificationMessage.push(notification.logmessages[i].message);
       }
 
-      switch (notification.type) {
+      switch (notification.notificationType) {
         case "KSI Service Errors":
               _errorNotificationMap.set(notification.hostName, ne);
           break;
@@ -516,7 +518,7 @@ on("NotificationClosedCommand", function(notification) {
   // notification closure could have being emitted via front-end or
   // based off of clousure createria in either case we we make sure its removed from cache.
   // This is to make sure we are in sync with the db.
-  switch (notification.type) {
+  switch (notification.notificationType) {
     case "KSI Service Errors":
       if(_errorNotificationMap.has(notification.hostName)) {
         _errorNotificationMap.remove(notification.hostName);

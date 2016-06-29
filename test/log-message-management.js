@@ -12,7 +12,7 @@ describe('Log Message Management', function(){
 
     describe('Log Message', function () {
         it('should create', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Service Errors",  "status":"Open", "hostName": "Guardtime"})
+            ms.command('NotificationCreateCommand', {"notificationType": "KSI Service Errors",  "status":"Open", "hostName": "Guardtime"})
               .then(function (notification) {
                 ms.command('LogMessageCreateCommand', {"message": "This should find a message", "notificationId": notification.id })
                 .then(function(logMessage){
@@ -26,7 +26,7 @@ describe('Log Message Management', function(){
         });
 
         it('should find log message', function(done){
-            ms.command('NotificationCreateCommand', {"type": "KSI Service Warnings",  "status":"Open", "hostName": "Guardtime"})
+            ms.command('NotificationCreateCommand', {"notificationType": "KSI Service Warnings",  "status":"Open", "hostName": "Guardtime"})
               .then(function(notification){
                   return ms.command('LogMessageCreateCommand', {"message": "This should find a message", "notificationId": notification.id }).then(function(){
                     return ms.command('LogMessageCreateCommand', {"message": "This should find a message", "notificationId": notification.id }).then(function(logMessage){
