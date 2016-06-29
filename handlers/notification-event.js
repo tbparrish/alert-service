@@ -60,9 +60,7 @@ var NotificationEventHandler = function() {
   log.debug("Notification Staging Duration was set to " + notificationStagingDuration);
 
   // task scheduled to monitor notification HashMaps every 5 minutes
-  // setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
-  setInterval(this.monitorHashMapTask, 20 * 1000);
-
+  setInterval(this.monitorHashMapTask, 5 * 60 * 1000);
 
   // task scheduled to send out emails every 24 hours
   setInterval(this.emailDailyTask, 24 * 60 * 60 * 1000);
@@ -168,7 +166,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       endTime = moment(moment().toArray());
       if( (value.state === 0) ) {
         startTime = moment(moment(value.createdAt).toArray());
-        mins = endTime.diff(startTime, 'seconds');
+        mins = endTime.diff(startTime, 'minutes');
         if( (mins >= notificationStagingDuration) ) {
           // do not process host that we do not know. (pending to open state)
           if (hostnames.indexOf(key) >= 0){
@@ -196,7 +194,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       endTime = moment(moment().toArray());
       if( (value.state === 0) && (value.creationCounter > 5) ) {
         startTime = moment(moment(value.createdAt).toArray());
-        mins = endTime.diff(startTime, 'seconds');
+        mins = endTime.diff(startTime, 'minutes');
         if( (mins >= notificationStagingDuration) ) {
             // do not process host that we do not know. (pending to open state)
             if (hostnames.indexOf(key) >= 0){
@@ -217,7 +215,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
         }
       } else if( (value.state === 1) ) {
         startTime = moment(moment(value.updatedAt).toArray());
-        mins = endTime.diff(startTime, 'seconds');
+        mins = endTime.diff(startTime, 'minutes');
         if( (mins >= 30) ) {
           log.debug("Got KSI Service Warnings Event [host:"+key+"]\n\tCondition:\t-Open State\n\t\t\t-Has not occurred in the last 30 minutes \n\tChanging [host:"+key+"] warning state from open to close state\n");
           // move notification from open state to close state.
@@ -236,7 +234,7 @@ NotificationEventHandler.prototype.monitorHashMapTask = function(){
       endTime = moment(moment().toArray());
       if( (value.state === 0) ) {
         startTime = moment(moment(value.createdAt).toArray());
-        mins = endTime.diff(startTime, 'seconds');
+        mins = endTime.diff(startTime, 'minutes');
           if( (mins >= notificationStagingDuration) ) {
             // do not process host that we do not know. (pending to open state)
             if (hostnames.indexOf(key) >= 0){
