@@ -54,7 +54,14 @@ on("NotificationGetQuery", function(data){
     return models.Notification.findOne({where: data, include: INCLUDE});
 });
 on("NotificationCreateCommand", function(data){
-    return models.Notification.create(data, {include: INCLUDE});
+    return models.Notification.create(data, {include: INCLUDE})
+        .finally(function(resp) {
+            models.Notification.findAll({where: { status: 'Open' }})
+                .then(function(notifications){
+                    var totalOpen = notifications.length;
+                    event( 'OpenNotificationEvent', { totalOpen: totalOpen } );
+                });
+        });
 });
 on("NotificationDeleteCommand", function(data){
     return models.Notification.findOne({where: data}).then(function(notification){
