@@ -1,12 +1,12 @@
 var Notification = model({
   name: 'Notification',
   properties: {
-    notificationType: { type: Sequelize.ENUM,
+    notificationType: { type: Sequelize.String,
             values: ['KSI Service Errors', 'KSI Service Warnings', 'Aggregator All Parent Failure'],
             allowNull: false,
             validate:  {isIn: [['KSI Service Errors', 'KSI Service Warnings', 'Aggregator All Parent Failure']]}
     },
-    status: { type: Sequelize.ENUM,
+    status: { type: Sequelize.String,
             values: ['Open', 'Closed'],
             allowNull: false,
             validate:  {isIn: [['Open', 'Closed']]}
