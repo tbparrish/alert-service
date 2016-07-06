@@ -1,12 +1,12 @@
 var Notification = model({
   name: 'Notification',
   properties: {
-    notificationType: { type: Sequelize.String,
+    notificationType: { type: Sequelize.STRING,
             values: ['KSI Service Errors', 'KSI Service Warnings', 'Aggregator All Parent Failure'],
             allowNull: false,
             validate:  {isIn: [['KSI Service Errors', 'KSI Service Warnings', 'Aggregator All Parent Failure']]}
     },
-    status: { type: Sequelize.String,
+    status: { type: Sequelize.STRING,
             values: ['Open', 'Closed'],
             allowNull: false,
             validate:  {isIn: [['Open', 'Closed']]}
