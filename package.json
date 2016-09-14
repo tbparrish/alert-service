@@ -27,7 +27,7 @@
     "lazy.js": "^0.4.0",
     "lodash": "^4.5.0",
     "moment": "^2.10.3",
-    "persephone-ms": "git@github.com:GuardTime/persephone-ms.git#b462a5dc85db7b6d519a93159f0353b1ab693657",
+    "persephone-ms": "git@github.com:GuardTime/persephone-ms.git#71feaf3116b8e32492515f9ba6112c458c57c8c9",
     "uuid-v4.js": "^1.0.2",
     "when": "^3.7.7"
   }
